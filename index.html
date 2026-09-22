@@ -62,18 +62,19 @@ nav button{flex:1;padding:12px;font-size:13px}.danger{color:#b91c1c}.success{col
 <nav><button onclick="showDashboard()">🏠 داشبورد</button><button onclick="showForm()">＋ هزینه</button><button onclick="showList()">📋 لیست</button></nav>
 
 <script>
-const KEY='company_expenses_v1';
+const KEY='company_expenses_v2';
+const $ = id => document.getElementById(id);
 let receiptData='';
 const fa=n=>Number(n||0).toLocaleString('fa-IR');
 const today=()=>new Date().toISOString().slice(0,10);
 function data(){return JSON.parse(localStorage.getItem(KEY)||'[]')}
 function saveData(x){localStorage.setItem(KEY,JSON.stringify(x))}
 function showOnly(id){['dashboard','form','list'].forEach(x=>document.getElementById(x).classList.toggle('hidden',x!==id));render()}
-function showDashboard(){showOnly('dashboard')} function showForm(){showOnly('form');document.getElementById('date').value=today();document.getElementById('desc').focus()}
+function showDashboard(){showOnly('dashboard')} function showForm(){showOnly('form');$('date').value=today();$('desc').focus()}
 function showList(){showOnly('list')}
 function previewReceipt(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{receiptData=r.result;let im=document.getElementById('receiptPreview');im.src=receiptData;im.classList.remove('hidden')};r.readAsDataURL(f)}
 function saveExpense(){
- let x={id:Date.now(),date:date.value,desc:desc.value.trim(),cat:cat.value,amount:Number(amount.value||0),account:account.value,invoice:invoice.value.trim(),receipt:receiptData,payer:payer.value.trim(),notes:notes.value.trim()};
+ let x={id:Date.now(),date:$('date').value,desc:$('desc').value.trim(),cat:$('cat').value,amount:Number($('amount').value||0),account:$('account').value,invoice:$('invoice').value.trim(),receipt:receiptData,payer:$('payer').value.trim(),notes:$('notes').value.trim()};
  if(!x.desc||!x.amount){alert('شرح و مبلغ را وارد کنید.');return}
  let a=data();a.unshift(x);saveData(a);alert('هزینه ثبت شد ✓');receiptData='';document.querySelectorAll('#form input,#form textarea').forEach(e=>{if(e.type!=='date')e.value=''});document.getElementById('receiptPreview').classList.add('hidden');showDashboard()
 }
@@ -81,9 +82,9 @@ function render(){
  let a=data(), t=today(), ym=t.slice(0,7);
  let td=a.filter(x=>x.date===t).reduce((s,x)=>s+x.amount,0);
  let mt=a.filter(x=>x.date.startsWith(ym)).reduce((s,x)=>s+x.amount,0);
- todayTotal.textContent=fa(td)+' تومان';monthTotal.textContent=fa(mt)+' تومان';countTotal.textContent=fa(a.length);missingDocs.textContent=fa(a.filter(x=>!x.receipt).length);
- recent.innerHTML=a.slice(0,5).map(itemHTML).join('')||'<div class="card muted">هنوز هزینه‌ای ثبت نشده است.</div>';
- allList.innerHTML=a.map(itemHTML).join('')||'<div class="card muted">هنوز هزینه‌ای ثبت نشده است.</div>';
+ $('todayTotal').textContent=fa(td)+' تومان';$('monthTotal').textContent=fa(mt)+' تومان';$('countTotal').textContent=fa(a.length);$('missingDocs').textContent=fa(a.filter(x=>!x.receipt).length);
+ $('recent').innerHTML=a.slice(0,5).map(itemHTML).join('')||'<div class="card muted">هنوز هزینه‌ای ثبت نشده است.</div>';
+ $('allList').innerHTML=a.map(itemHTML).join('')||'<div class="card muted">هنوز هزینه‌ای ثبت نشده است.</div>';
 }
 function itemHTML(x){return `<div class="item"><div style="display:flex;justify-content:space-between"><b>${esc(x.desc)}</b><span class="amount">${fa(x.amount)} تومان</span></div><div class="muted">${x.date} · ${esc(x.cat)} · ${esc(x.account)}</div><div class="muted">${x.invoice?'رسید: '+esc(x.invoice):'بدون شماره رسید'} · ${x.receipt?'<span class="success">مدرک دارد</span>':'<span class="danger">مدرک ندارد</span>'}</div></div>`}
 function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
