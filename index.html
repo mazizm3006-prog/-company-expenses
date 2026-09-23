@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0f172a">
-<title>هزینه‌های شرکت</title>
+<title>مدیریت شرکت MEKANOR</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,sans-serif;background:#f1f5f9;color:#0f172a}
 header{background:#0f172a;color:white;padding:18px 16px 22px;border-radius:0 0 22px 22px}
@@ -23,7 +23,7 @@ nav button{flex:1;padding:12px;font-size:13px}.danger{color:#b91c1c}.success{col
 </style>
 </head>
 <body>
-<header><h1>هزینه‌های شرکت</h1><div class="sub">ثبت سریع هزینه و نگهداری مدرک روی گوشی</div></header>
+<header><h1>مدیریت شرکت MEKANOR</h1><div class="sub">هزینه‌ها، کارهای روزانه و پیگیری ملاقات‌ها</div></header>
 <div class="container">
 <section id="dashboard">
 <div class="grid">
@@ -32,9 +32,10 @@ nav button{flex:1;padding:12px;font-size:13px}.danger{color:#b91c1c}.success{col
 <div class="card"><div class="label">تعداد هزینه‌ها</div><div class="value" id="countTotal">۰</div></div>
 <div class="card"><div class="label">بدون مدرک</div><div class="value" id="missingDocs">۰</div></div>
 </div>
-<button class="primary" onclick="showForm()">＋ ثبت هزینه جدید</button>
+<div class="row"><button class="primary" onclick="showForm()">＋ ثبت هزینه</button><button class="primary" onclick="showTaskForm()">＋ کار جدید</button></div>
 <div class="toprow"><b>آخرین هزینه‌ها</b><button class="secondary" onclick="showList()">همه</button></div>
 <div id="recent"></div>
+<div class="toprow"><b>کارهای امروز</b><button class="secondary" onclick="showTaskList()">همه</button></div><div id="todayTasks"></div>
 </section>
 
 <section id="form" class="hidden">
@@ -56,27 +57,30 @@ nav button{flex:1;padding:12px;font-size:13px}.danger{color:#b91c1c}.success{col
 <section id="list" class="hidden">
 <div class="toprow"><b>لیست هزینه‌ها</b><button class="secondary" onclick="showDashboard()">بازگشت</button></div>
 <div id="allList"></div>
-<button class="secondary" style="width:100%;margin-top:10px" onclick="exportCSV()">خروجی CSV</button>
+<button class="secondary" style="width:100%;margin-top:10px" onclick="exportCSV()">خروجی CSV هزینه‌ها</button>
 </section>
-</div>
-<nav><button onclick="showDashboard()">🏠 داشبورد</button><button onclick="showForm()">＋ هزینه</button><button onclick="showList()">📋 لیست</button></nav>
+<section id="taskForm" class="hidden"><div class="toprow"><b>ثبت کار / قرار</b><button class="secondary" onclick="showDashboard()">بازگشت</button></div>
+<label>تاریخ</label><input id="taskDate" type="date"><label>ساعت</label><input id="taskTime" type="time"><label>کار / هدف</label><input id="taskTitle" placeholder="مثلاً بازدید از کارخانه مشتری"><label>محل</label><input id="taskPlace" placeholder="مثلاً شهرک صنعتی"><label>مخاطب / شخص</label><input id="taskPerson" placeholder="نام شخص یا شرکت"><label>نتیجه / توضیحات</label><textarea id="taskNotes" rows="3"></textarea><button class="primary" onclick="saveTask()">ثبت کار</button></section>
+<section id="taskList" class="hidden"><div class="toprow"><b>همه کارها</b><button class="secondary" onclick="showDashboard()">بازگشت</button></div><div id="allTasks"></div></section>
+</div><nav><button onclick="showDashboard()">🏠 داشبورد</button><button onclick="showForm()">＋ هزینه</button><button onclick="showTaskForm()">📅 کار</button><button onclick="showList()">📋 هزینه‌ها</button></nav>
 
 <script>
-const KEY='company_expenses_v2';
+const KEY='company_expenses_v3'; const TASKKEY='company_tasks_v1';
 const $ = id => document.getElementById(id);
 let receiptData='';
 const fa=n=>Number(n||0).toLocaleString('fa-IR');
 const today=()=>new Date().toISOString().slice(0,10);
-function data(){return JSON.parse(localStorage.getItem(KEY)||'[]')}
-function saveData(x){localStorage.setItem(KEY,JSON.stringify(x))}
-function showOnly(id){['dashboard','form','list'].forEach(x=>document.getElementById(x).classList.toggle('hidden',x!==id));render()}
+function data(){return JSON.parse(localStorage.getItem(KEY)||'[]')} function tasks(){return JSON.parse(localStorage.getItem(TASKKEY)||'[]')} function saveData(x){localStorage.setItem(KEY,JSON.stringify(x))} function saveTasks(x){localStorage.setItem(TASKKEY,JSON.stringify(x))}
+function showOnly(id){['dashboard','form','list','taskForm','taskList'].forEach(x=>document.getElementById(x).classList.toggle('hidden',x!==id));render()}
 function showDashboard(){showOnly('dashboard')} function showForm(){showOnly('form');$('date').value=today();$('desc').focus()}
-function showList(){showOnly('list')}
+function showList(){showOnly('list')} function showTaskForm(){showOnly('taskForm');$('taskDate').value=today();$('taskTitle').focus()} function showTaskList(){showOnly('taskList')}
 function previewReceipt(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{receiptData=r.result;let im=document.getElementById('receiptPreview');im.src=receiptData;im.classList.remove('hidden')};r.readAsDataURL(f)}
+function editExpense(id){let x=data().find(z=>z.id===id);if(!x)return; showForm(); Object.keys({date:1,desc:1,cat:1,amount:1,account:1,invoice:1,payer:1,notes:1}).forEach(k=>$(k).value=x[k]??''); receiptData=x.receipt||''; $('receiptPreview').src=receiptData; $('receiptPreview').classList.toggle('hidden',!receiptData); window.editingId=id; document.querySelector('#form .primary').textContent='ذخیره ویرایش'}
+function deleteExpense(id){if(!confirm('این هزینه حذف شود؟'))return;saveData(data().filter(x=>x.id!==id));render()}
 function saveExpense(){
  let x={id:Date.now(),date:$('date').value,desc:$('desc').value.trim(),cat:$('cat').value,amount:Number($('amount').value||0),account:$('account').value,invoice:$('invoice').value.trim(),receipt:receiptData,payer:$('payer').value.trim(),notes:$('notes').value.trim()};
  if(!x.desc||!x.amount){alert('شرح و مبلغ را وارد کنید.');return}
- let a=data();a.unshift(x);saveData(a);alert('هزینه ثبت شد ✓');receiptData='';document.querySelectorAll('#form input,#form textarea').forEach(e=>{if(e.type!=='date')e.value=''});document.getElementById('receiptPreview').classList.add('hidden');showDashboard()
+ let a=data(); if(window.editingId){x.id=window.editingId; a=a.map(z=>z.id===x.id?x:z); window.editingId=null; document.querySelector('#form .primary').textContent='ثبت هزینه'} else a.unshift(x); saveData(a);alert('هزینه ثبت شد ✓');receiptData='';document.querySelectorAll('#form input,#form textarea').forEach(e=>{if(e.type!=='date')e.value=''});document.getElementById('receiptPreview').classList.add('hidden');showDashboard()
 }
 function render(){
  let a=data(), t=today(), ym=t.slice(0,7);
@@ -86,14 +90,14 @@ function render(){
  $('recent').innerHTML=a.slice(0,5).map(itemHTML).join('')||'<div class="card muted">هنوز هزینه‌ای ثبت نشده است.</div>';
  $('allList').innerHTML=a.map(itemHTML).join('')||'<div class="card muted">هنوز هزینه‌ای ثبت نشده است.</div>';
 }
-function itemHTML(x){return `<div class="item"><div style="display:flex;justify-content:space-between"><b>${esc(x.desc)}</b><span class="amount">${fa(x.amount)} تومان</span></div><div class="muted">${x.date} · ${esc(x.cat)} · ${esc(x.account)}</div><div class="muted">${x.invoice?'رسید: '+esc(x.invoice):'بدون شماره رسید'} · ${x.receipt?'<span class="success">مدرک دارد</span>':'<span class="danger">مدرک ندارد</span>'}</div></div>`}
+function itemHTML(x){return `<div class="item"><div style="display:flex;justify-content:space-between"><b>${esc(x.desc)}</b><span class="amount">${fa(x.amount)} تومان</span></div><div class="muted">${x.date} · ${esc(x.cat)} · ${esc(x.account)}</div><div class="muted">${x.invoice?'رسید: '+esc(x.invoice):'بدون شماره رسید'} · ${x.receipt?'<span class="success">مدرک دارد</span>':'<span class="danger">مدرک ندارد</span>'}</div><div class="row" style="margin-top:8px"><button class="secondary" onclick="editExpense(${x.id})">✏️ ویرایش</button><button class="secondary danger" onclick="deleteExpense(${x.id})">🗑️ حذف</button></div></div>`}
 function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function exportCSV(){
  let a=data();let rows=[['تاریخ','شرح','دسته','مبلغ','کارت/حساب','شماره رسید','پرداخت‌کننده','توضیحات'],...a.map(x=>[x.date,x.desc,x.cat,x.amount,x.account,x.invoice,x.payer,x.notes])];
  let csv='\uFEFF'+rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
  let blob=new Blob([csv],{type:'text/csv;charset=utf-8'}), url=URL.createObjectURL(blob), link=document.createElement('a');link.href=url;link.download='هزینه‌های-شرکت.csv';link.click();URL.revokeObjectURL(url)
 }
-render();
+function saveTask(){let x={id:Date.now(),date:$('taskDate').value,time:$('taskTime').value,title:$('taskTitle').value.trim(),place:$('taskPlace').value.trim(),person:$('taskPerson').value.trim(),notes:$('taskNotes').value.trim()};if(!x.title){alert('عنوان کار را وارد کنید.');return}let a=tasks();a.unshift(x);saveTasks(a);alert('کار ثبت شد ✓');$('taskTitle').value='';$('taskPlace').value='';$('taskPerson').value='';$('taskNotes').value='';showDashboard()} function deleteTask(id){if(confirm('این کار حذف شود؟')){saveTasks(tasks().filter(x=>x.id!==id));render()}} function taskHTML(x){return `<div class="item"><b>${esc(x.title)}</b><div class="muted">${x.date}${x.time?' · '+x.time:''} · ${esc(x.place||'بدون محل')} · ${esc(x.person||'بدون مخاطب')}</div><div class="muted">${esc(x.notes||'')}</div><button class="secondary danger" onclick="deleteTask(${x.id})">🗑️ حذف</button></div>`} function renderTasks(){let a=tasks();$('todayTasks').innerHTML=a.filter(x=>x.date===today()).slice(0,5).map(taskHTML).join('')||'<div class="card muted">برای امروز کاری ثبت نشده.</div>';if($('allTasks'))$('allTasks').innerHTML=a.map(taskHTML).join('')||'<div class="card muted">کاری ثبت نشده.</div>'} renderTasks();
 </script>
 </body>
 </html>
